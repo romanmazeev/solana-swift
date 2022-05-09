@@ -1,5 +1,5 @@
 import XCTest
-@testable import SolanaSwift
+import SolanaSwift
 
 class APIClientTests: XCTestCase {
     
@@ -181,7 +181,6 @@ class APIClientTests: XCTestCase {
     }
     
     // MARK: - Mocks
-    
     
     class NetworkManagerMock: NetworkManager {
         private let json: String

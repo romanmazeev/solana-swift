@@ -219,7 +219,7 @@ public protocol SolanaAPIClient {
     /// - Returns First Transaction Signature embedded in the transaction, as base-58 encoded string
     /// - SeeAlso https://docs.solana.com/developing/clients/jsonrpc-api#simulatetransaction
     ///
-    func simulateTransaction(transaction: String, configs: RequestConfiguration) async throws -> TransactionStatus
+    func simulateTransaction(transaction: String, configs: RequestConfiguration) async throws -> SimulationResult
     func setLogFilter(filter: String) async throws -> String?
     func validatorExit() async throws -> Bool
     
@@ -231,6 +231,16 @@ public protocol SolanaAPIClient {
     /// - SeeAlso https://docs.solana.com/developing/clients/jsonrpc-api#getmultipleaccounts
     ///
     func getMultipleAccounts<T: DecodableBufferLayout>(pubkeys: [String]) async throws -> [BufferInfo<T>]
+    
+    /// Observe status of a sending transaction by periodically calling getSignatureStatuses
+    /// - Parameters:
+    ///  - signature: signature of the transaction, as base-58 encoded strings
+    ///  - timeout: timeout (in seconds)
+    ///  - delay: delay between requests
+    /// - Throws: APIClientError
+    /// - SeeAlso https://docs.solana.com/developing/clients/jsonrpc-api#getsignaturestatuses
+    ///
+    func observeSignatureStatus(signature: String, timeout: Int, delay: Int) -> AsyncStream<TransactionStatus>
 
     // Requests
     func request<Entity: Decodable>(with request: RequestEncoder.RequestType) async throws -> AnyResponse<Entity>
@@ -383,8 +393,8 @@ extension SolanaAPIClient {
         try await self.get(method: "sendTransaction", params: [transaction, configs])
     }
     
-    public func simulateTransaction(transaction: String, configs: RequestConfiguration = RequestConfiguration(encoding: "base64")!) async throws -> TransactionStatus {
-        let result: Rpc<TransactionStatus> = try await self.get(method: "simulateTransaction", params: [transaction, configs])
+    public func simulateTransaction(transaction: String, configs: RequestConfiguration = RequestConfiguration(encoding: "base64")!) async throws -> SimulationResult {
+        let result: Rpc<SimulationResult> = try await self.get(method: "simulateTransaction", params: [transaction, configs])
         return result.value
     }
     
@@ -403,6 +413,30 @@ extension SolanaAPIClient {
         return result.value
     }
     
+    public func observeSignatureStatus(signature: String, timeout: Int = 60, delay: Int = 2) -> AsyncStream<TransactionStatus> {
+        AsyncStream { continuation in
+            let monitor = TransactionMonitor(
+                apiClient: self,
+                signature: signature,
+                timeout: timeout,
+                delay: delay,
+                responseHandler: { transactionStatus in
+                    continuation.yield(transactionStatus)
+                    if transactionStatus == .finalized {
+                        continuation.finish()
+                    }
+                },
+                timedOutHandler: {
+                    continuation.finish()
+                }
+            )
+            continuation.onTermination = { @Sendable _ in
+                monitor.stopMonitoring()
+            }
+            monitor.startMonitoring()
+        }
+    }
+    
     // MARK: - Private
     
     private func get<Entity: Decodable>(method: String, params: [Encodable]) async throws -> Entity {
@@ -414,6 +448,4 @@ extension SolanaAPIClient {
         }
         return result
     }
-    
-
 }
