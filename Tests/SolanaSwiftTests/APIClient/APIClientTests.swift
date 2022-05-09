@@ -48,7 +48,7 @@ class APIClientTests: XCTestCase {
     func testGetBalance() async throws {
         let mock = NetworkManagerMock(NetworkManagerMockJSON["getBalance"]!)
         let apiClient = JSONRPCAPIClient(endpoint: endpoint, networkManager: mock)
-        let account = try Account(phrase: endpoint.network.testAccount.components(separatedBy: " "), network: endpoint.network).publicKey.base58EncodedString
+        let account = try await Account(phrase: endpoint.network.testAccount.components(separatedBy: " "), network: endpoint.network).publicKey.base58EncodedString
         let result: UInt64 = try! await apiClient.getBalance(account: account, commitment: "recent")
         XCTAssert(result == 123456)
     }
@@ -86,7 +86,7 @@ class APIClientTests: XCTestCase {
     func testGetConfirmedSignaturesForAddress() async throws {
         let mock = NetworkManagerMock(NetworkManagerMockJSON["getConfirmedSignaturesForAddress"]!)
         let apiClient = JSONRPCAPIClient(endpoint: endpoint, networkManager: mock)
-        let account = try Account(phrase: endpoint.network.testAccount.components(separatedBy: " "), network: endpoint.network).publicKey.base58EncodedString
+        let account = try await Account(phrase: endpoint.network.testAccount.components(separatedBy: " "), network: endpoint.network).publicKey.base58EncodedString
         let result: [String] = try! await apiClient.getConfirmedSignaturesForAddress(account: account, startSlot: 131647712, endSlot: 131647713)
         XCTAssertEqual(result.count, 3)
         XCTAssertEqual(result[0], "1")
