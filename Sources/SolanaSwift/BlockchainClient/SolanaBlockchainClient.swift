@@ -41,7 +41,7 @@ public protocol SolanaBlockchainClient: AnyObject {
     /// - Parameter preparedTransaction: a prepared transaction
     func simulateTransaction(
         preparedTransaction: PreparedTransaction
-    ) async throws -> TransactionStatus
+    ) async throws -> SimulationResult
 }
 
 extension SolanaBlockchainClient {
@@ -62,7 +62,7 @@ extension SolanaBlockchainClient {
     
     public func simulateTransaction(
         preparedTransaction: PreparedTransaction
-    ) async throws -> TransactionStatus {
+    ) async throws -> SimulationResult {
         let serializedTransaction = try signAndSerialize(preparedTransaction: preparedTransaction)
         return try await apiClient.simulateTransaction(transaction: serializedTransaction)
     }
