@@ -249,7 +249,7 @@ public struct TokenAccountBalance: Codable, Equatable, Hashable {
         self.uiAmountString = uiAmountString
     }
     
-    init(amount: String, decimals: UInt8?) {
+    public init(amount: String, decimals: UInt8?) {
         self.uiAmount = UInt64(amount)?.convertToBalance(decimals: decimals)
         self.amount = amount
         self.decimals = decimals
